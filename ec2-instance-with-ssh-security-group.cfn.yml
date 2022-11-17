@@ -1,0 +1,96 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: EC2 instance with a single network interface and multiple static IP addresses
+Parameters:
+  ImageId:
+    Description: Set EC2 AMI ID.
+    Type: AWS::EC2::Image::Id
+    ConstraintDescription: must be a valid EC2 instance type.
+  KeyName:
+    Description: Set a name of an existing EC2 KeyPair to enable SSH access to the instance.
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+  InstanceType:
+    Description: Set EC2 instance type.
+    Type: String
+    Default: t2.micro
+    ConstraintDescription: must be a valid EC2 instance type.
+  EbsVolumeSize:
+    Description: Set EBS volume size.
+    Type: Number
+    MinValue: 0
+    Default: 30
+  VpcId:
+    Description: Set the VpcId of an existing VPC.
+    Type: AWS::EC2::VPC::Id
+    ConstraintDescription: must be the VPC Id of an existing Virtual Private Cloud.
+  SubnetId:
+    Description: Set the SubnetId of an existing subnet (for the primary network) in the VPC.
+    Type: AWS::EC2::Subnet::Id
+    ConstraintDescription: must be an existing subnet in the selected Virtual Private Cloud.
+  SSHLocation:
+    Description: Set the IP address range that can be used to SSH to the EC2 instances.
+    Type: String
+    MinLength: 9
+    MaxLength: 18
+    Default: 0.0.0.0/0
+    AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+Resources:
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref ImageId
+      KeyName: !Ref KeyName
+      InstanceType: !Ref InstanceType
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          NetworkInterfaceId: !Ref EC2NetworkInterface
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref EbsVolumeSize
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: true
+      InstanceInitiatedShutdownBehavior: terminate
+      Tags:
+        - Key: Name
+          Value: HeadNode
+  EC2NetworkInterface:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      GroupSet:
+        - !Ref EC2SecurityGroup
+      SourceDestCheck: false
+      SubnetId: !Ref SubnetId
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupDescription: Enable SSH access via port 22
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SSHLocation
+  EC2EIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  EC2EIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      NetworkInterfaceId: !Ref EC2NetworkInterface
+      AllocationId: !GetAtt EC2EIP.AllocationId
+Outputs:
+  EC2InstanceId:
+    Description: EC2 Instance Id
+    Value: !Ref EC2Instance
+    Export:
+      Name: !Sub ${AWS::Region}-${AWS::StackName}-EC2InstanceId
+  EC2InstanceEIP:
+    Description: Primary public IP of network interface
+    Value: !Ref EC2EIP
+    Export:
+      Name: !Sub ${AWS::Region}-${AWS::StackName}-EC2InstanceEIP
