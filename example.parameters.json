@@ -1,0 +1,10 @@
+[
+  {"ParameterKey": "ImageId", "ParameterValue": "ami-0fe77b349d804e9e6"},
+  {"ParameterKey": "KeyName", "ParameterValue": "my-key-pair"},
+  {"ParameterKey": "InstanceType", "ParameterValue": "t2.micro"},
+  {"ParameterKey": "InstanceName", "ParameterValue": "headnode"},
+  {"ParameterKey": "EbsVolumeSize", "ParameterValue": "30"},
+  {"ParameterKey": "VpcId", "ParameterValue": "vpc-xxxxxxxxxxxxxxxxx"},
+  {"ParameterKey": "SubnetId", "ParameterValue": "subnet-xxxxxxxxxxxxxxxxx"},
+  {"ParameterKey": "SSHLocation", "ParameterValue": "0.0.0.0/0"}
+]
