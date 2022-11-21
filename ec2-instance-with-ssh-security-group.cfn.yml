@@ -85,8 +85,8 @@ Resources:
   EC2EIPAssociation:
     Type: AWS::EC2::EIPAssociation
     Properties:
-      NetworkInterfaceId: !Ref EC2NetworkInterface
       AllocationId: !GetAtt EC2EIP.AllocationId
+      InstanceId: !Ref EC2Instance
 Outputs:
   EC2InstanceId:
     Description: EC2 Instance Id
