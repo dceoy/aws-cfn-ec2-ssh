@@ -3,7 +3,7 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: EC2 instance with a single network interface and multiple static IP addresses
 Parameters:
   ImageId:
-    Description: Set EC2 AMI ID.
+    Description: Set an EC2 AMI ID.
     Type: AWS::EC2::Image::Id
     ConstraintDescription: must be a valid EC2 instance type.
   KeyName:
@@ -11,12 +11,12 @@ Parameters:
     Type: AWS::EC2::KeyPair::KeyName
     ConstraintDescription: must be the name of an existing EC2 KeyPair.
   InstanceType:
-    Description: Set EC2 instance type.
+    Description: Set an EC2 instance type.
     Type: String
     Default: t2.micro
     ConstraintDescription: must be a valid EC2 instance type.
   InstanceName:
-    Description: Set EC2 instance name.
+    Description: Set an EC2 instance name.
     Type: String
     Default: headnode
   EbsVolumeSize:
@@ -72,7 +72,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref VpcId
-      GroupDescription: Enable SSH access via port 22
+      GroupDescription: Security group for SSH access via port 22
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 22
