@@ -72,12 +72,16 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref VpcId
+      GroupName: !Sub ${InstanceName}-security-group
       GroupDescription: Security group for SSH access via port 22
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
           CidrIp: !Ref SSHLocation
+      Tags:
+        - Key: Name
+          Value: !Sub ${InstanceName}-security-group
   EC2EIP:
     Type: AWS::EC2::EIP
     Properties:
