@@ -38,13 +38,21 @@ Installation
       - Amazon Linux 2 (GPU): `/aws/service/ecs/optimized-ami/amazon-linux-2/gpu/recommended`
       - Amazon Linux 2 (Inferentia): `/aws/service/ecs/optimized-ami/amazon-linux-2/inf/recommended`
 
-4.  Deploy stacks of an EC2 instance with a security group for SSH connection.
+4.  Deploy stacks for an EC2 instance.
 
     ```sh
+    # connection via SSH
     $ aws cloudformation create-stack \
-        --stack-name ec2-instance-with-ssh-security-group \
-        --template-body file://ec2-instance-with-ssh-security-group.cfn.yml \
+        --stack-name ec2-instance-for-ssh \
+        --template-body file://ec2-instance-for-ssh.cfn.yml \
         --parameters file://dev.parameters.json
+
+    # connection via AWS SSM Session Manager
+    $ aws cloudformation create-stack \
+        --stack-name ec2-instance-for-ssm-session-manager \
+        --template-body file://ec2-instance-for-ssm-session-manager.cfn.yml \
+        --parameters file://dev.parameters.json \
+        --capabilities CAPABILITY_NAMED_IAM
     ```
 
     - When using [Rain](https://github.com/aws-cloudformation/rain), deploy stacks as follows:
@@ -53,5 +61,5 @@ Installation
       $ jq -r '.[] | to_entries | "\(.[0].value)=\(.[1].value)"' dev.parameters.json \
           | paste -sd , - \
           | xargs -I{} -t rain deploy -y --params {} \
-            ec2-instance-with-ssh-security-group.cfn.yml ec2-instance-with-ssh-security-group
+            ec2-instance-for-ssh.cfn.yml ec2-instance-for-ssh
       ```

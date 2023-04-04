@@ -6,10 +6,6 @@ Parameters:
     Description: Set an EC2 AMI ID.
     Type: AWS::EC2::Image::Id
     ConstraintDescription: must be a valid EC2 instance type.
-  KeyName:
-    Description: Set a name of an existing EC2 KeyPair to enable SSH access to the instance.
-    Type: AWS::EC2::KeyPair::KeyName
-    ConstraintDescription: must be the name of an existing EC2 KeyPair.
   InstanceType:
     Description: Set an EC2 instance type.
     Type: String
@@ -32,20 +28,11 @@ Parameters:
     Description: Set the SubnetId of an existing subnet (for the primary network) in the VPC.
     Type: AWS::EC2::Subnet::Id
     ConstraintDescription: must be an existing subnet in the selected Virtual Private Cloud.
-  SSHLocation:
-    Description: Set the IP address range that can be used to SSH to the EC2 instances.
-    Type: String
-    MinLength: 9
-    MaxLength: 18
-    Default: 0.0.0.0/0
-    AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
-    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
 Resources:
   EC2Instance:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: !Ref ImageId
-      KeyName: !Ref KeyName
       InstanceType: !Ref InstanceType
       NetworkInterfaces:
         - DeviceIndex: 0
@@ -58,9 +45,52 @@ Resources:
             Encrypted: true
             DeleteOnTermination: true
       InstanceInitiatedShutdownBehavior: terminate
+      IamInstanceProfile: !Ref EC2InstanceProfile
       Tags:
         - Key: Name
           Value: !Ref InstanceName
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupName: !Sub ${InstanceName}-security-group
+      GroupDescription: EC2 security group
+      Tags:
+        - Key: Name
+          Value: !Sub ${InstanceName}-security-group
+  SSMInterfaceEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref SubnetId
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ssm
+      VpcEndpointType: Interface
+      VpcId: !Ref VpcId
+  SSMMessagesInterfaceEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref SubnetId
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ssmmessages
+      VpcEndpointType: Interface
+      VpcId: !Ref VpcId
+  EC2MessagesInterfaceEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref SubnetId
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ec2messages
+      VpcEndpointType: Interface
+      VpcId: !Ref VpcId
   EC2NetworkInterface:
     Type: AWS::EC2::NetworkInterface
     Properties:
@@ -68,20 +98,6 @@ Resources:
         - !Ref EC2SecurityGroup
       SourceDestCheck: false
       SubnetId: !Ref SubnetId
-  EC2SecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      VpcId: !Ref VpcId
-      GroupName: !Sub ${InstanceName}-security-group
-      GroupDescription: Security group for SSH access via port 22
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: !Ref SSHLocation
-      Tags:
-        - Key: Name
-          Value: !Sub ${InstanceName}-security-group
   EC2EIP:
     Type: AWS::EC2::EIP
     Properties:
@@ -91,6 +107,29 @@ Resources:
     Properties:
       AllocationId: !GetAtt EC2EIP.AllocationId
       InstanceId: !Ref EC2Instance
+  EC2InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${InstanceName}-EC2InstanceRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+                - ssm.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref EC2InstanceRole
 Outputs:
   EC2InstanceId:
     Description: EC2 Instance Id
